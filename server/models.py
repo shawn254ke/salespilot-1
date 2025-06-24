@@ -13,6 +13,11 @@ class User(db.Model):
     role = db.Column(db.String, nullable=False)  # admin, sales_rep
     created_at = db.Column(db.DateTime, default=datetime)
 
+
+    contacts = db.relationship('Contact', back_populates='user', cascade='all, delete-orphan')
+
+    
+
 class Contact(db.Model):
     __tablename__ = 'contacts'
     
@@ -23,6 +28,8 @@ class Contact(db.Model):
     company = db.Column(db.String(100), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime)
+
+    user = db.relationship('User', back_populates = 'contacts')
 
 class Lead(db.Model):
     __tablename__ = 'leads'
