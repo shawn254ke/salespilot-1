@@ -33,13 +33,24 @@ def get_contact(id):
         'created_at': contact.created_at.isoformat()
     }), 200
 
-    
-
-
-
+# Create a new contact
 @contacts_bp.route('/', methods=['POST'])
 def create_contact():
-    pass
+    data = request.get_json()
+    try:
+        new_contact = Contact(
+            name=data['name'],
+            email=data['email'],
+            phone=data.get('phone'),
+            company=data.get('company'),
+            user_id=data['user_id'],
+            created_at=datetime.utcnow()
+        )
+        db.session.add(new_contact)
+        db.session.commit()
+        return jsonify({'message': 'Contact created successfully', 'id': new_contact.id}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
 
 
 
