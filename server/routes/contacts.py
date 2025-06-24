@@ -66,10 +66,13 @@ def update_contact(id):
     contact.company = data.get('company', contact.company)
 
     db.session.commit()
-    return jsonify({'message': 'Contact updated successfully'})
+    return jsonify({'message': 'Contact updated successfully'}), 200
 
 
 # Delete a contact
 @contacts_bp.route('/<int:id>', methods=['DELETE'])
 def delete_contact(id):
-    pass
+    contact = Contact.query.get_or_404(id)
+    db.session.delete(contact)
+    db.session.commit()
+    return jsonify({'message': 'Contact deleted'}), 204
