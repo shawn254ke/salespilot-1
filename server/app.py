@@ -8,13 +8,9 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///salespilot.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-
-
-
 db.init_app(app)
 migrate = Migrate(app, db)
 CORS(app)
-
 
 @app.route('/')
 def index():
