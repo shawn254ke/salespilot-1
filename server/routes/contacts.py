@@ -53,14 +53,23 @@ def create_contact():
         return jsonify({'error': str(e)}), 400
 
 
-
+# Update an existing contact
 @contacts_bp.route('/<int:id>', methods=['PATCH'])
 def update_contact(id):
-    pass
+
+    contact = Contact.query.get_or_404(id)
+    data = request.get_json()
+
+    contact.name = data.get('name', contact.name)
+    contact.email = data.get('email', contact.email)
+    contact.phone = data.get('phone', contact.phone)
+    contact.company = data.get('company', contact.company)
+
+    db.session.commit()
+    return jsonify({'message': 'Contact updated successfully'})
 
 
-
-
+# Delete a contact
 @contacts_bp.route('/<int:id>', methods=['DELETE'])
 def delete_contact(id):
     pass
