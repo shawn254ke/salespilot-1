@@ -40,4 +40,40 @@
   --color-sidebar-accent-foreground: hsl(210 40% 98%);
   --color-sidebar-border: hsl(217 33% 18%);
   --color-sidebar-ring: hsl(224 76% 48%);
+  /* --color-status-new: #6366f1;
+  --color-status-contacted: #f59e0b;
+  --color-status-interested: #10b981;
+  --color-status-converted: #6366f1;
+  --color-status-lost: #6366f1; */
+
 }
+ * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+  .data-card {
+    @apply bg-white rounded-lg shadow-md p-4 flex flex-col transition-all hover:shadow-lg;
+  }
+  
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-white py-2 px-4 rounded hover:opacity-90 transition-opacity;
+  }
+  
+  .card-title {
+    @apply text-lg font-semibold text-gray-800;
+  }
+  
+  .card-value {
+    @apply text-3xl font-bold text-primary mt-2;
+  }
+  
+  .lead-row-hover {
+    @apply hover:bg-gray-50 transition-colors;
+  }

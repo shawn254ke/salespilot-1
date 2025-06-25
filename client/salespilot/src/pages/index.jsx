@@ -13,7 +13,25 @@ const Index = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [leadToEdit, setLeadToEdit] = useState(null);
 
-    
+    useEffect(() => {
+    fetch('http://localhost:5555/contacts/', {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      method: 'GET',
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch contacts');
+        return res.json();
+      })
+      .then((data) => setLeads(data))
+      .catch((err) => {
+        toast({
+          title: "Error fetching contacts",
+          description: err.message,
+        });
+      });
+  }, []);
    
 
   const handleTabChange = (value) => {
