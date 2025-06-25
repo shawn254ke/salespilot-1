@@ -74,3 +74,28 @@ def create_lead():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
+    
+@leads_bp.route('/int:id', methods=['PATCH'])
+@jwt_required()
+def update_lead(id):
+    current_user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    lead = Lead.query.get_or_404(id)
+    
+    contact = Contact.query.get_or_404(lead.contact_id)
+    if contact.user_id != current_user_id:
+        return jsonify({'error': 'Unauthorized access to lead'}), 403
+    
+    if 'status' in data:
+        allowed_statuses = ['New', 'Contacted', 'Won', 'Lost']
+        if data['status'] not in allowed_statuses:
+            return jsonify({'error': f'status must be one of: {", ".join(allowed_statuses)}'}), 400
+        lead.status = data['status']
+        
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Lead updated successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
