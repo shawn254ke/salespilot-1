@@ -106,6 +106,7 @@ def update_contact(id):
     contact.email = data.get('email', contact.email)
     contact.phone = data.get('phone', contact.phone)
     contact.company = data.get('company', contact.company)
+    contact.updated_at = datetime.utcnow()
 
     db.session.commit()
     return jsonify({'message': 'Contact updated successfully'}), 200
