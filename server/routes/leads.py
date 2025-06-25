@@ -22,3 +22,21 @@ def get_leads():
         'status':lead.status,
         'created_at': lead.created_at.isoformat()
     }), 200
+    
+@leads_bp.route('/<int:id>', methods=['GET'])
+@jwt_required()
+def get_lead(id):
+    current_user_id = get_jwt_identity()
+    
+    lead = Lead.query.get_or_404(id)
+    
+    contact = Contact.query.get_or_404(lead.contact_id)
+    if contact.user_id != current_user_id:
+        return jsonify({'error':'Unauthorized access to lead'}), 403
+    
+    return jsonify({
+        'id': lead.id,
+        'contact_id':lead.contact_id,
+        'status': lead.status,
+        'created_at': lead.created_at.isoformat()
+    }), 200
