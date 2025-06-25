@@ -99,3 +99,22 @@ def update_lead(id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
+    
+@leads_bp.route('/<int:id>', methods=['DELETE'])
+@jwt_required()
+def delete_lead(id):
+    current_user_id = get_jwt_identity()
+    
+    lead = Lead.query.get_or_404(id)
+    
+    contact = Contact.query.get_or_404(lead.contact_id)
+    if contact.user_id != current_user_id:
+        return jsonify({'error': 'Unauthorized access to lead'}), 403
+    
+    try:
+        db.session.delete(lead)
+        db.session.commit()
+        return jsonify({'message': 'Lead deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
