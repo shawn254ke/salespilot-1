@@ -4,11 +4,21 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Api, Resource
 from models import db
+from routes.contacts import  contacts_bp
+from routes.leads import leads_bp
+
+
+from flask_jwt_extended import JWTManager
 
 app = Flask(__name__)
+app.register_blueprint(contacts_bp, url_prefix='/contacts')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///salespilot.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["JWT_SECRET_KEY"] = "super-secret-key" 
+app.config["JWT_TOKEN_LOCATION"] = ["headers"]     
+
+jwt = JWTManager(app)
 
 db.init_app(app)
 migrate = Migrate(app, db)

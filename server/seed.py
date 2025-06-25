@@ -1,10 +1,10 @@
 from app import app
-from models import db, User, Contact, Lead, Task, Activity_log
+from models import db, User, Contact, Lead, Task, ActivityLog
 from datetime import datetime, timedelta
 
 with app.app_context():
     print(" Deleting old data...")
-    Activity_log.query.delete()
+    ActivityLog.query.delete()
     Task.query.delete()
     Lead.query.delete()
     Contact.query.delete()
@@ -43,13 +43,13 @@ with app.app_context():
     db.session.commit()
 
     print(" Creating activity logs...")
-    log1 = Activity_log(
+    log1 = ActivityLog(
         contact_id=contact1.id,
         interaction_type="Email",
         notes="Sent introductory email.",
         created_at=datetime.now()
     )
-    log2 = Activity_log(
+    log2 = ActivityLog(
         contact_id=contact2.id,
         interaction_type="Call",
         notes="Spoke with client regarding project timeline.",

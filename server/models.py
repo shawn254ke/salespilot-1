@@ -20,6 +20,8 @@ class User(db.Model, SerializerMixin):
 
     contacts = db.relationship('Contact', back_populates='user', cascade='all, delete-orphan')
 
+    def __repr__(self):
+        return f'<User {self.username} ({self.email})>'
 
 class Contact(db.Model, SerializerMixin):
     __tablename__ = 'contacts'
@@ -37,9 +39,11 @@ class Contact(db.Model, SerializerMixin):
     leads = db.relationship('Lead', back_populates='contact', cascade='all, delete-orphan')
     tasks = db.relationship('Task', back_populates='contact', cascade='all, delete-orphan')
     activity_logs = db.relationship('ActivityLog', back_populates='contact', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f"<Contact {self.name} ({self.email})>"
 
-
-class Lead(db.Model, SerializerMixin):
+class Lead(db.Model, SerializerMixin): #track the client or customer by status
     __tablename__ = 'leads'
     serialize_rules = ('-contact.leads',)
 
@@ -50,6 +54,9 @@ class Lead(db.Model, SerializerMixin):
 
     contact = db.relationship('Contact', back_populates='leads')
 
+
+    def __repr__(self):
+        return f"<Lead ContactID={self.contact_id} Status={self.status}>"
 
 class Task(db.Model, SerializerMixin):
     __tablename__ = 'tasks'
@@ -66,6 +73,8 @@ class Task(db.Model, SerializerMixin):
 
     contact = db.relationship('Contact', back_populates='tasks')
 
+    def __repr__(self):
+        return f"<Task {self.title} - Status: {self.status}, Completed: {self.completed}>"
 
 class ActivityLog(db.Model, SerializerMixin):
     __tablename__ = 'activity_logs'
@@ -78,3 +87,6 @@ class ActivityLog(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
 
     contact = db.relationship('Contact', back_populates='activity_logs')
+    
+    def __repr__(self):
+        return f"<ActivityLog ContactID={self.contact_id} Type={self.interaction_type}>"
