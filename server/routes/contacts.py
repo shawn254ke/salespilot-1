@@ -1,36 +1,45 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from models import db, Contact
+from models import db, Contact, Lead, Task, ActivityLog
 from datetime import datetime
 
 contacts_bp = Blueprint('contacts', __name__)
 
 
-# GET all contacts for the current user
-
+# GET all contacts for current user
 @contacts_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_contacts():
     current_user_id = get_jwt_identity()
     contacts = Contact.query.filter_by(user_id=current_user_id).all()
-    return jsonify([{
-        'id': contact.id,
-        'name': contact.name,
-        'email': contact.email,
-        'phone': contact.phone,
-        'company': contact.company,
-        'user_id': contact.user_id,
-        'created_at': contact.created_at.isoformat()
-    } for contact in contacts]), 200
+
+    return jsonify([
+        {
+            'id': contact.id,
+            'name': contact.name,
+            'email': contact.email,
+            'phone': contact.phone,
+            'company': contact.company,
+            'user_id': contact.user_id,
+            'created_at': contact.created_at.isoformat(),
+            'lead_status': contact.lead_status.status if contact.lead_status else None,
+            'tasks_count': len(contact.tasks),
+            'last_interaction': max(
+                [log.created_at for log in contact.activity_logs], default=None
+            ).isoformat() if contact.activity_logs else None
+        }
+        for contact in contacts
+    ]), 200
 
 
-# GET single contact by ID (current user only)
+
+# GET single contact (current user only)
 @contacts_bp.route('/<int:id>', methods=['GET'])
 @jwt_required()
 def get_contact(id):
     current_user_id = get_jwt_identity()
-    contact = Contact.query.filter_by(
-        id=id, user_id=current_user_id).first_or_404()
+    contact = Contact.query.filter_by(id=id, user_id=current_user_id).first_or_404()
+
     return jsonify({
         'id': contact.id,
         'name': contact.name,
@@ -38,12 +47,24 @@ def get_contact(id):
         'phone': contact.phone,
         'company': contact.company,
         'user_id': contact.user_id,
-        'created_at': contact.created_at.isoformat()
+        'created_at': contact.created_at.isoformat(),
+        'lead_status': contact.lead_status.status if contact.lead_status else None,
+        'tasks': [{
+            'id': task.id,
+            'title': task.title,
+            'completed': task.completed
+        } for task in contact.tasks],
+        'activity_logs': [{
+            'id': log.id,
+            'interaction_type': log.interaction_type,
+            'notes': log.notes,
+            'created_at': log.created_at.isoformat()
+        } for log in contact.activity_logs]
     }), 200
 
 
-# POST create a new contact
 
+# POST create a new contact
 
 @contacts_bp.route('/', methods=['POST'])
 @jwt_required()
@@ -65,20 +86,20 @@ def create_contact():
         )
         db.session.add(new_contact)
         db.session.commit()
+
         return jsonify({'message': 'Contact created successfully', 'id': new_contact.id}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
 
-# PATCH update an existing contact (user-owned only)
 
+# PATCH update an existing contact
 
 @contacts_bp.route('/<int:id>', methods=['PATCH'])
 @jwt_required()
 def update_contact(id):
     current_user_id = get_jwt_identity()
-    contact = Contact.query.filter_by(
-        id=id, user_id=current_user_id).first_or_404()
+    contact = Contact.query.filter_by(id=id, user_id=current_user_id).first_or_404()
     data = request.get_json()
 
     contact.name = data.get('name', contact.name)
@@ -90,15 +111,14 @@ def update_contact(id):
     return jsonify({'message': 'Contact updated successfully'}), 200
 
 
-# DELETE a contact (user-owned only)
 
+# DELETE a contact
 
 @contacts_bp.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_contact(id):
     current_user_id = get_jwt_identity()
-    contact = Contact.query.filter_by(
-        id=id, user_id=current_user_id).first_or_404()
+    contact = Contact.query.filter_by(id=id, user_id=current_user_id).first_or_404()
 
     db.session.delete(contact)
     db.session.commit()
