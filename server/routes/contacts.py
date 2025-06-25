@@ -28,12 +28,13 @@ def get_contacts():
             'company': contact.company,
             'user_id': contact.user_id,
             'created_at': contact.created_at.isoformat(),
-            'lead_status': contact.lead_status.status if contact.lead_status else None,
+            'lead_status': contact.lead.status if contact.lead else None,
             'tasks_count': len(contact.tasks),
             'last_interaction': last_interaction
         })
 
     return jsonify(results), 200
+
 
 
 
