@@ -5,7 +5,7 @@ from datetime import datetime
 
 leads_bp = Blueprint('leads', __name__)
 
-@leads_bp.route('/', methods=[GET])
+@leads_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_leads():
     current_user_id = get_jwt_identity()
