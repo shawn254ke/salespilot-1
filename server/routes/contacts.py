@@ -13,8 +13,14 @@ def get_contacts():
     current_user_id = get_jwt_identity()
     contacts = Contact.query.filter_by(user_id=current_user_id).all()
 
-    return jsonify([
-        {
+    results = []
+    for contact in contacts:
+        last_interaction = (
+            max([log.created_at for log in contact.activity_logs])
+            .isoformat() if contact.activity_logs else None
+        )
+
+        results.append({
             'id': contact.id,
             'name': contact.name,
             'email': contact.email,
@@ -24,12 +30,10 @@ def get_contacts():
             'created_at': contact.created_at.isoformat(),
             'lead_status': contact.lead_status.status if contact.lead_status else None,
             'tasks_count': len(contact.tasks),
-            'last_interaction': max(
-                [log.created_at for log in contact.activity_logs], default=None
-            ).isoformat() if contact.activity_logs else None
-        }
-        for contact in contacts
-    ]), 200
+            'last_interaction': last_interaction
+        })
+
+    return jsonify(results), 200
 
 
 
@@ -38,7 +42,10 @@ def get_contacts():
 @jwt_required()
 def get_contact(id):
     current_user_id = get_jwt_identity()
-    contact = Contact.query.filter_by(id=id, user_id=current_user_id).first_or_404()
+    contact = Contact.query.filter_by(id=id, user_id=current_user_id).first()
+
+    if not contact:
+        return jsonify(error="Contact not found or you don't have access"), 404
 
     return jsonify({
         'id': contact.id,
@@ -48,19 +55,19 @@ def get_contact(id):
         'company': contact.company,
         'user_id': contact.user_id,
         'created_at': contact.created_at.isoformat(),
-        'lead_status': contact.lead_status.status if contact.lead_status else None,
-        'tasks': [{
-            'id': task.id,
-            'title': task.title,
-            'completed': task.completed
-        } for task in contact.tasks],
-        'activity_logs': [{
-            'id': log.id,
-            'interaction_type': log.interaction_type,
-            'notes': log.notes,
-            'created_at': log.created_at.isoformat()
-        } for log in contact.activity_logs]
+        'lead_status': contact.lead.status if contact.lead else None,  # ✅ Use singular 'lead'
+        'tasks': [
+            {'id': task.id, 'title': task.title, 'completed': task.completed}
+            for task in contact.tasks
+        ],
+        'activity_logs': [
+            {'id': log.id, 'interaction_type': log.interaction_type, 'notes': log.notes,
+             'created_at': log.created_at.isoformat()}
+            for log in contact.activity_logs
+        ]
     }), 200
+
+
 
 
 

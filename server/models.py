@@ -23,9 +23,18 @@ class User(db.Model, SerializerMixin):
     def __repr__(self):
         return f'<User {self.username} ({self.email})>'
 
+    def to_dict(self):
+        return {
+        "id": self.id,
+        "username": self.username,
+        "email": self.email,
+        "role": self.role
+    }
+
+
 class Contact(db.Model, SerializerMixin):
     __tablename__ = 'contacts'
-    serialize_rules = ('-user.contacts', '-leads.contact', '-tasks.contact', '-activity_logs.contact')
+    serialize_rules = ('-user.contacts', '-lead.contact', '-tasks.contact', '-activity_logs.contact')
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -36,24 +45,23 @@ class Contact(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
 
     user = db.relationship('User', back_populates='contacts')
-    leads = db.relationship('Lead', back_populates='contact', cascade='all, delete-orphan')
+    lead = db.relationship('Lead', uselist=False, back_populates='contact', cascade='all, delete-orphan')
     tasks = db.relationship('Task', back_populates='contact', cascade='all, delete-orphan')
     activity_logs = db.relationship('ActivityLog', back_populates='contact', cascade='all, delete-orphan')
-    
+
     def __repr__(self):
         return f"<Contact {self.name} ({self.email})>"
 
-class Lead(db.Model, SerializerMixin): #track the client or customer by status
+class Lead(db.Model, SerializerMixin):
     __tablename__ = 'leads'
-    serialize_rules = ('-contact.leads',)
+    serialize_rules = ('-contact.lead',)
 
     id = db.Column(db.Integer, primary_key=True)
     contact_id = db.Column(db.Integer, db.ForeignKey('contacts.id'), nullable=False)
     status = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
 
-    contact = db.relationship('Contact', back_populates='leads')
-
+    contact = db.relationship('Contact', back_populates='lead')
 
     def __repr__(self):
         return f"<Lead ContactID={self.contact_id} Status={self.status}>"
@@ -87,6 +95,6 @@ class ActivityLog(db.Model, SerializerMixin):
     created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
 
     contact = db.relationship('Contact', back_populates='activity_logs')
-    
+
     def __repr__(self):
         return f"<ActivityLog ContactID={self.contact_id} Type={self.interaction_type}>"
