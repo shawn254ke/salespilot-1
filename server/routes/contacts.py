@@ -73,7 +73,6 @@ def get_contact(id):
 
 
 # POST create a new contact
-
 @contacts_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_contact():
@@ -82,6 +81,10 @@ def create_contact():
 
     if not data.get('name') or not data.get('email'):
         return jsonify({'error': 'Name and email are required'}), 400
+
+    existing = Contact.query.filter_by(email=data['email'], user_id=current_user_id).first()
+    if existing:
+        return jsonify({'error': 'Contact with this email already exists'}), 400
 
     try:
         new_contact = Contact(
@@ -94,10 +97,10 @@ def create_contact():
         )
         db.session.add(new_contact)
         db.session.commit()
-
         return jsonify({'message': 'Contact created successfully', 'id': new_contact.id}), 201
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
 
@@ -114,10 +117,14 @@ def update_contact(id):
     contact.email = data.get('email', contact.email)
     contact.phone = data.get('phone', contact.phone)
     contact.company = data.get('company', contact.company)
-    contact.updated_at = datetime.utcnow()
+    contact.created_at = datetime.utcnow()
 
-    db.session.commit()
-    return jsonify({'message': 'Contact updated successfully'}), 200
+    try:
+        db.session.commit()
+        return jsonify({'message': 'Contact updated successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 
 
@@ -129,6 +136,10 @@ def delete_contact(id):
     current_user_id = get_jwt_identity()
     contact = Contact.query.filter_by(id=id, user_id=current_user_id).first_or_404()
 
-    db.session.delete(contact)
-    db.session.commit()
-    return jsonify({'message': 'Contact deleted'}), 200
+    try:
+        db.session.delete(contact)
+        db.session.commit()
+        return jsonify({'message': 'Contact deleted'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
