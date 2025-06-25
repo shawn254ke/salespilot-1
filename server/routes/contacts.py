@@ -1,14 +1,18 @@
 from flask import Blueprint, request, jsonify
-from models import db, Contact, User
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from models import db, Contact
 from datetime import datetime
-
 
 contacts_bp = Blueprint('contacts', __name__)
 
-# Retrieve all contacts
-@contacts_bp.route('/contacts', methods=['GET'])
+
+# GET all contacts for the current user
+
+@contacts_bp.route('/', methods=['GET'])
+@jwt_required()
 def get_contacts():
-    contacts = Contact.query.all()
+    current_user_id = get_jwt_identity()
+    contacts = Contact.query.filter_by(user_id=current_user_id).all()
     return jsonify([{
         'id': contact.id,
         'name': contact.name,
@@ -19,10 +23,14 @@ def get_contacts():
         'created_at': contact.created_at.isoformat()
     } for contact in contacts]), 200
 
-# Retrieve a single contact by ID
+
+# GET single contact by ID (current user only)
 @contacts_bp.route('/<int:id>', methods=['GET'])
+@jwt_required()
 def get_contact(id):
-    contact = Contact.query.get_or_404(id)
+    current_user_id = get_jwt_identity()
+    contact = Contact.query.filter_by(
+        id=id, user_id=current_user_id).first_or_404()
     return jsonify({
         'id': contact.id,
         'name': contact.name,
@@ -33,17 +41,26 @@ def get_contact(id):
         'created_at': contact.created_at.isoformat()
     }), 200
 
-# Create a new contact
+
+# POST create a new contact
+
+
 @contacts_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_contact():
     data = request.get_json()
+    current_user_id = get_jwt_identity()
+
+    if not data.get('name') or not data.get('email'):
+        return jsonify({'error': 'Name and email are required'}), 400
+
     try:
         new_contact = Contact(
             name=data['name'],
             email=data['email'],
             phone=data.get('phone'),
             company=data.get('company'),
-            user_id=data['user_id'],
+            user_id=current_user_id,
             created_at=datetime.utcnow()
         )
         db.session.add(new_contact)
@@ -53,11 +70,15 @@ def create_contact():
         return jsonify({'error': str(e)}), 400
 
 
-# Update an existing contact
-@contacts_bp.route('/<int:id>', methods=['PATCH'])
-def update_contact(id):
+# PATCH update an existing contact (user-owned only)
 
-    contact = Contact.query.get_or_404(id)
+
+@contacts_bp.route('/<int:id>', methods=['PATCH'])
+@jwt_required()
+def update_contact(id):
+    current_user_id = get_jwt_identity()
+    contact = Contact.query.filter_by(
+        id=id, user_id=current_user_id).first_or_404()
     data = request.get_json()
 
     contact.name = data.get('name', contact.name)
@@ -69,10 +90,16 @@ def update_contact(id):
     return jsonify({'message': 'Contact updated successfully'}), 200
 
 
-# Delete a contact
+# DELETE a contact (user-owned only)
+
+
 @contacts_bp.route('/<int:id>', methods=['DELETE'])
+@jwt_required()
 def delete_contact(id):
-    contact = Contact.query.get_or_404(id)
+    current_user_id = get_jwt_identity()
+    contact = Contact.query.filter_by(
+        id=id, user_id=current_user_id).first_or_404()
+
     db.session.delete(contact)
     db.session.commit()
-    return jsonify({'message': 'Contact deleted'}), 204
+    return jsonify({'message': 'Contact deleted'}), 200
