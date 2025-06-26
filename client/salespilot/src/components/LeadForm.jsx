@@ -66,7 +66,7 @@ const LeadForm = ({
     if (newNote.trim()) {
       setFormData((prev) => ({
         ...prev,
-        notes: [...prev.notes, newNote.trim()],
+        notes: [...(Array.isArray(prev.notes) ? prev.notes : []), newNote.trim()],
       }));
       setNewNote('');
     }
@@ -75,18 +75,105 @@ const LeadForm = ({
   const handleRemoveNote = (index) => {
     setFormData((prev) => ({
       ...prev,
-      notes: prev.notes.filter((_, i) => i !== index),
+      notes: (Array.isArray(prev.notes) ? prev.notes : []).filter((_, i) => i !== index),
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedLead = {
-      id: leadToEdit?.id || Date.now(),
-      createdOn: leadToEdit?.createdOn || new Date(),
-      ...formData,
-    };
-    onSave(updatedLead);
+    const token = localStorage.getItem('access_token');
+    try {
+      if (leadToEdit) {
+        // PATCH contact
+        const contactRes = await fetch(`http://localhost:5555/contacts/${leadToEdit.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            company: formData.company,
+          })
+        });
+        const contactData = await contactRes.json();
+        if (!contactRes.ok) throw new Error(contactData.error || 'Failed to update contact');
+
+        // PATCH lead status (find lead id from leadToEdit.lead_id or similar)
+        // If leadToEdit.lead_id is not present, fallback to leadToEdit.id
+        const leadId = leadToEdit.lead_id || leadToEdit.id;
+        const leadRes = await fetch(`http://localhost:5555/leads/${leadId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+          body: JSON.stringify({
+            status: formData.status,
+          })
+        });
+        const leadData = await leadRes.json();
+        if (!leadRes.ok) throw new Error(leadData.error || 'Failed to update lead');
+
+        onSave();
+      } else {
+        // 1. Create or get contact
+        const contactRes = await fetch('http://localhost:5555/contacts/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            company: formData.company,
+          })
+        });
+        const contactData = await contactRes.json();
+        if (!contactRes.ok && contactData.error !== 'Contact with this email already exists') {
+          throw new Error(contactData.error || 'Failed to create contact');
+        }
+
+        // 2. Get contact id (from response or by fetching contacts)
+        let contactId = contactData.id;
+        if (!contactId) {
+          // If contact already exists, fetch contacts to get the id
+          const contactsRes = await fetch('http://localhost:5555/contacts/', {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
+          });
+          const contacts = await contactsRes.json();
+          const found = contacts.find(c => c.email === formData.email);
+          if (!found) throw new Error('Contact not found after creation');
+          contactId = found.id;
+        }
+
+        // 3. Create lead for this contact
+        const leadRes = await fetch('http://localhost:5555/leads/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+          body: JSON.stringify({
+            contact_id: contactId,
+            status: formData.status,
+          })
+        });
+        const leadData = await leadRes.json();
+        if (!leadRes.ok) throw new Error(leadData.error || 'Failed to create lead');
+
+        onSave();
+      }
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const statusOptions = [
@@ -97,15 +184,7 @@ const LeadForm = ({
     'Lost',
   ];
 
-  const sourceOptions = [
-    'Referral',
-    'Website',
-    'Social Media',
-    'Email',
-    'Cold Call',
-    'Event',
-    'Other',
-  ];
+  
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -183,26 +262,7 @@ const LeadForm = ({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="source">Source</Label>
-                <Select
-                  value={formData.source}
-                  onValueChange={(value) =>
-                    handleSelectChange('source', value)
-                  }
-                >
-                  <SelectTrigger id="source">
-                    <SelectValue placeholder="Select source" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sourceOptions.map((source) => (
-                      <SelectItem key={source} value={source}>
-                        {source}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+             
             </div>
             
             <div className="space-y-2">
@@ -218,7 +278,7 @@ const LeadForm = ({
                 </Button>
               </div>
               <div className="mt-2">
-                {formData.notes.length > 0 ? (
+                {(Array.isArray(formData.notes) && formData.notes.length > 0) ? (
                   <ul className="space-y-1">
                     {formData.notes.map((note, index) => (
                       <li

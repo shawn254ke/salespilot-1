@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardFooter } from './ui/card';
 import StatusBadge from './StatusBadge';
 import { Button } from './ui/button';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from './ui/alert-dialog';
 import { MoreVertical, Trash2, Edit, Phone, Mail } from 'lucide-react';
 import {
   DropdownMenu,
@@ -11,6 +22,11 @@ import {
 } from './ui/dropdown-menu';
 
 const LeadCard = ({ lead, onEdit, onDelete }) => {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const handleDelete = () => {
+    setConfirmOpen(false);
+    onDelete(lead);
+  };
   return (
     <Card className="mb-4">
       <CardContent className="pt-6">
@@ -38,7 +54,7 @@ const LeadCard = ({ lead, onEdit, onDelete }) => {
             Source: {lead.source}
           </p>
           <p className="text-xs text-muted-foreground">
-            Created: {lead.createdOn.toLocaleDateString()}
+            Created: {lead.createdOn ? (typeof lead.createdOn === 'string' ? new Date(lead.createdOn).toLocaleDateString() : lead.createdOn.toLocaleDateString()) : '-'}
           </p>
         </div>
       </CardContent>
@@ -48,14 +64,29 @@ const LeadCard = ({ lead, onEdit, onDelete }) => {
           <Button variant="outline" size="sm" onClick={() => onEdit(lead)}>
             <Edit className="h-4 w-4 mr-1" /> Edit
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="text-destructive hover:text-destructive"
-            onClick={() => onDelete(lead.id)}
-          >
-            <Trash2 className="h-4 w-4 mr-1" /> Delete
-          </Button>
+          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1" /> Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Lead & Contact?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete this contact and all associated lead status. Are you sure?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
         
         <DropdownMenu>
@@ -66,7 +97,7 @@ const LeadCard = ({ lead, onEdit, onDelete }) => {
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuItem onClick={() => onEdit(lead)}>Edit Lead</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDelete(lead.id)} className="text-destructive">Delete Lead</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setConfirmOpen(true)} className="text-destructive">Delete Lead</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </CardFooter>

@@ -75,7 +75,7 @@ def create_lead():
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
     
-@leads_bp.route('/int:id', methods=['PATCH'])
+@leads_bp.route('/<int:id>', methods=['PATCH'])
 @jwt_required()
 def update_lead(id):
     current_user_id = get_jwt_identity()
@@ -88,7 +88,7 @@ def update_lead(id):
         return jsonify({'error': 'Unauthorized access to lead'}), 403
     
     if 'status' in data:
-        allowed_statuses = ['New', 'Contacted', 'Won', 'Lost']
+        allowed_statuses = ['New', 'Contacted', 'Interested', 'Lost', 'Converted']
         if data['status'] not in allowed_statuses:
             return jsonify({'error': f'status must be one of: {", ".join(allowed_statuses)}'}), 400
         lead.status = data['status']

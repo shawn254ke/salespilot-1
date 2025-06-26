@@ -1,5 +1,5 @@
 import React from 'react';
-// import { Lead, LeadStatus } from '../models/leads';
+import { getStatusCount, getConversionRate } from '../models/leads';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 
 import { 
@@ -20,53 +20,53 @@ import {
 import TimeBasedChart from './TimeBasedChart';
 
 const Dashboard = ({ leads }) => {
-//   const newLeads = getStatusCount(leads, 'New');
-//   const contactedLeads = getStatusCount(leads, 'Contacted');
-//   const interestedLeads = getStatusCount(leads, 'Interested');
-//   const convertedLeads = getStatusCount(leads, 'Converted');
-//   const lostLeads = getStatusCount(leads, 'Lost');
-//   const conversionRate = getConversionRate(leads);
+  const newLeads = getStatusCount(leads, 'New');
+  const contactedLeads = getStatusCount(leads, 'Contacted');
+  const interestedLeads = getStatusCount(leads, 'Interested');
+  const convertedLeads = getStatusCount(leads, 'Converted');
+  const lostLeads = getStatusCount(leads, 'Lost');
+  const conversionRate = getConversionRate(leads);
 
   const lineChartData = [
-    { name: 'New', value: 10 },
-    { name: 'Contacted', value: 10 },
-    { name: 'Interested', value: 10 },
-    { name: 'Converted', value: 10 },
-    { name: 'Lost', value: 10 },
+    { name: 'New', value: newLeads },
+    { name: 'Contacted', value: contactedLeads },
+    { name: 'Interested', value: interestedLeads },
+    { name: 'Converted', value: convertedLeads },
+    { name: 'Lost', value: lostLeads },
   ];
 
   const statusCardData = [
     {
       title: 'New Leads',
-      value: 10,
+      value: newLeads,
       icon: UsersIcon,
       color: 'text-status-new',
       bgColor: 'bg-status-new',
     },
     {
       title: 'Contacted',
-      value: 10,
+      value: contactedLeads,
       icon: PhoneCallIcon,
       color: 'text-status-contacted',
       bgColor: 'bg-status-contacted',
     },
     {
       title: 'Interested',
-      value: 10,
+      value: interestedLeads  ,
       icon: ThumbsUpIcon,
       color: 'text-status-interested',
       bgColor: 'bg-status-interested',
     },
     {
       title: 'Converted',
-      value: 10,
+      value: convertedLeads,
       icon: CheckCircleIcon,
       color: 'text-status-converted',
       bgColor: 'bg-status-converted',
     },
     {
       title: 'Lost',
-      value: 10 ,
+      value: lostLeads, 
       icon: XCircleIcon,
       color: 'text-status-lost',
       bgColor: 'bg-status-lost',
@@ -144,7 +144,7 @@ const Dashboard = ({ leads }) => {
           <CardContent className="h-[300px] flex flex-col items-center justify-center">
             <div className="relative h-40 w-40">
               <div className="absolute inset-0 flex items-center justify-center">
-                {/* <span className="text-4xl font-bold">{conversionRate.toFixed(1)}%</span> */}
+                 <span className="text-4xl font-bold">{conversionRate.toFixed(1)}%</span> 
               </div>
               <svg className="h-full w-full" viewBox="0 0 100 100">
                 <circle
@@ -162,7 +162,7 @@ const Dashboard = ({ leads }) => {
                   fill="transparent"
                   stroke="#059669"
                   strokeWidth="10"
-                //   strokeDasharray={`${conversionRate * 2.83} 283`}
+                  strokeDasharray={`${conversionRate * 2.83} 283`}
                   strokeDashoffset="0"
                   strokeLinecap="round"
                   transform="rotate(-90 50 50)"
@@ -170,7 +170,7 @@ const Dashboard = ({ leads }) => {
               </svg>
             </div>
             <p className="text-center text-sm text-muted-foreground mt-4">
-              {10} converted out of {leads.length} total leads
+              {convertedLeads} converted out of {leads.length} total leads
             </p>
           </CardContent>
         </Card>

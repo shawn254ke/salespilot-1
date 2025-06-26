@@ -39,7 +39,9 @@ const Login = () => {
         // Save tokens and user info as needed
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('refresh_token', data.refresh_token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        const userWithLogin = { ...data.user, isLoggedIn: true };
+        localStorage.setItem('user', JSON.stringify(userWithLogin));
         toast({
           title: "Success",
           description: "Login successful!"

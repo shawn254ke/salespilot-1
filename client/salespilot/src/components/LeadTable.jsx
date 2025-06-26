@@ -196,7 +196,7 @@ const LeadTable = ({ leads, onEdit, onDelete }) => {
                     Status {getSortIcon('status')}
                   </div>
                 </TableHead>
-                <TableHead>Source</TableHead>
+                
                 <TableHead
                   className="cursor-pointer"
                   onClick={() => handleSort('createdOn')}
@@ -222,8 +222,8 @@ const LeadTable = ({ leads, onEdit, onDelete }) => {
                   <TableCell>
                     <StatusBadge status={lead.status} />
                   </TableCell>
-                  <TableCell>{lead.source}</TableCell>
-                  <TableCell>{lead.createdOn.toLocaleDateString()}</TableCell>
+                  
+                  <TableCell>{lead.createdOn ? (typeof lead.createdOn === 'string' ? new Date(lead.createdOn).toLocaleDateString() : lead.createdOn.toLocaleDateString()) : '-'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end">
                       <Button
