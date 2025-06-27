@@ -47,30 +47,41 @@ def create_lead():
     current_user_id = get_jwt_identity()
     data = request.get_json()
     
-    if not data.get('contact_id') or not data.get('status'):
-        return jsonify({'error': 'contact_id and status are required'}), 400
+    required_fields = ['name', 'email', 'status']
+    if not all(field in data for field in required_fields):
+        return jsonify({'error': f'Required fields: {", ".join(required_fields)}'}), 400
     
     allowed_statuses = ['New', 'Contacted', 'Interested', 'Converted', 'Lost']
     if data['status'] not in allowed_statuses:
         return jsonify({'error': f'status must be one of: {", ".join(allowed_statuses)}'}), 400
     
-    contact = Contact.query.filter_by(id=data['contact_id'], user_id=current_user_id).first()
-    if not contact:
-        return jsonify({'error': 'Contact not found or anauthorized'}), 404
-    
     try:
+        new_contact = Contact(
+            name=data['name'],
+            email=data['email'],
+            phone=data.get('phone'),
+            company=data.get('company'),
+            user_id=current_user_id,
+            created_at=datetime.utcnow()
+        )
+        db.session.add(new_contact)
+        db.session.flush()  
+        
         new_lead = Lead(
-            contact_id=data['contact_id'],
+            contact_id=new_contact.id,
             status=data['status'],
             created_at=datetime.utcnow()
         )
         db.session.add(new_lead)
+        
         db.session.commit()
         
         return jsonify({
             'message': 'Lead created successfully',
-            'id': new_lead.id
+            'lead_id': new_lead.id,
+            'contact_id': new_contact.id
         }), 201
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
