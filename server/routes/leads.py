@@ -50,7 +50,7 @@ def create_lead():
     if not data.get('contact_id') or not data.get('status'):
         return jsonify({'error': 'contact_id and status are required'}), 400
     
-    allowed_statuses = ['New', 'Contacted', 'Interested', 'Converted' 'Lost']
+    allowed_statuses = ['New', 'Contacted', 'Interested', 'Converted', 'Lost']
     if data['status'] not in allowed_statuses:
         return jsonify({'error': f'status must be one of: {", ".join(allowed_statuses)}'}), 400
     
@@ -88,7 +88,7 @@ def update_lead(id):
         return jsonify({'error': 'Unauthorized access to lead'}), 403
     
     if 'status' in data:
-        allowed_statuses = ['New', 'Contacted', 'Interested', 'Converted' 'Lost']
+        allowed_statuses = ['New', 'Contacted', 'Interested', 'Converted', 'Lost']
         if data['status'] not in allowed_statuses:
             return jsonify({'error': f'status must be one of: {", ".join(allowed_statuses)}'}), 400
         lead.status = data['status']
