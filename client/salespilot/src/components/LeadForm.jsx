@@ -43,9 +43,32 @@ const LeadForm = ({
   });
 
   React.useEffect(() => {
+    const fetchTasks = async (contactId) => {
+      const token = localStorage.getItem('access_token');
+      try {
+        const res = await fetch('http://localhost:5555/tasks/', {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+        });
+        if (!res.ok) throw new Error('Failed to fetch tasks');
+        const allTasks = await res.json();
+        // Only tasks for this contact
+        return allTasks.filter((t) => t.contact_id === contactId);
+      } catch (err) {
+        return [];
+      }
+    };
+
     if (leadToEdit) {
-      const { id, createdOn, tasks = [], ...rest } = leadToEdit;
-      setFormData({ ...rest, tasks: tasks || [] });
+      const { id, createdOn, ...rest } = leadToEdit;
+      fetchTasks(id).then((tasks) => {
+        setFormData({
+          ...rest,
+          tasks: tasks || [],
+        });
+      });
     } else {
       setFormData({
         name: '',
@@ -84,11 +107,52 @@ const LeadForm = ({
     }
   };
 
-  const handleRemoveTask = (index) => {
+
+  const handleRemoveTask = async (index) => {
+    const task = formData.tasks[index];
+    if (task && task.id) {
+      const token = localStorage.getItem('access_token');
+      try {
+        const res = await fetch(`http://localhost:5555/tasks/${task.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+          },
+        });
+        if (!res.ok) throw new Error('Failed to delete task');
+      } catch (err) {
+        alert('Failed to delete task');
+        return;
+      }
+    }
     setFormData((prev) => ({
       ...prev,
       tasks: (Array.isArray(prev.tasks) ? prev.tasks : []).filter((_, i) => i !== index),
     }));
+  };
+
+  // Mark a task as complete (PATCH to backend and update UI)
+  const handleCompleteTask = async (task, idx) => {
+    const token = localStorage.getItem('access_token');
+    try {
+      const res = await fetch(`http://localhost:5555/tasks/${task.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ completed: true })
+      });
+      if (!res.ok) throw new Error('Failed to mark task complete');
+      setFormData((prev) => {
+        const updated = [...prev.tasks];
+        updated[idx] = { ...updated[idx], completed: true };
+        return { ...prev, tasks: updated };
+      });
+    } catch (err) {
+      alert('Failed to mark task complete');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -185,21 +249,40 @@ const LeadForm = ({
       // Save tasks to backend for this contact
       for (const task of formData.tasks) {
         if (task.title) {
-          await fetch('http://localhost:5555/tasks/', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token && { 'Authorization': `Bearer ${token}` }),
-            },
-            body: JSON.stringify({
-              contact_id: contactId,
-              title: task.title,
-              description: task.description,
-              due_date: task.due_date,
-              status: 'Open',
-              completed: false,
-            })
-          });
+          if (task.id) {
+            // Update existing task
+            await fetch(`http://localhost:5555/tasks/${task.id}`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+              },
+              body: JSON.stringify({
+                title: task.title,
+                description: task.description,
+                due_date: task.due_date,
+                status: task.status || 'Open',
+                completed: !!task.completed,
+              })
+            });
+          } else {
+            // Create new task
+            await fetch('http://localhost:5555/tasks/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token && { 'Authorization': `Bearer ${token}` }),
+              },
+              body: JSON.stringify({
+                contact_id: contactId,
+                title: task.title,
+                description: task.description,
+                due_date: task.due_date,
+                status: 'Open',
+                completed: false,
+              })
+            });
+          }
         }
       }
 
@@ -331,23 +414,36 @@ const LeadForm = ({
                   <ul className="space-y-1">
                     {formData.tasks.map((task, index) => (
                       <li
-                        key={index}
+                        key={task.id || index}
                         className="flex items-center justify-between bg-secondary p-2 rounded-md"
                       >
                         <div>
                           <span className="text-sm font-medium">{task.title}</span>
                           {task.description && <span className="ml-2 text-xs text-muted-foreground">{task.description}</span>}
                           {task.due_date && <span className="ml-2 text-xs text-muted-foreground">Due: {task.due_date}</span>}
+                          {task.completed && <span className="ml-2 text-green-600 text-xs font-semibold">(Completed)</span>}
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveTask(index)}
-                          className="h-6 w-6 p-0"
-                        >
-                          &times;
-                        </Button>
+                        <div className="flex items-center space-x-2">
+                          {!task.completed && task.id && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleCompleteTask(task, index)}
+                            >
+                              Mark Complete
+                            </Button>
+                          )}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemoveTask(index)}
+                            className="h-6 w-6 p-0"
+                          >
+                            &times;
+                          </Button>
+                        </div>
                       </li>
                     ))}
                   </ul>
