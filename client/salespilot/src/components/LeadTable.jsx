@@ -27,12 +27,25 @@ import {
 } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import LeadCard from './LeadCard';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from './ui/alert-dialog';
 
 const LeadTable = ({ leads, onEdit, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortField, setSortField] = useState('createdOn');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState(null);
 
   const handleSort = (field) => {
     if (field === sortField) {
@@ -96,6 +109,19 @@ const LeadTable = ({ leads, onEdit, onDelete }) => {
     ) : (
       <ChevronDown className="ml-1 h-4 w-4" />
     );
+  };
+
+  const handleOpenDelete = (lead) => {
+    setLeadToDelete(lead);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (leadToDelete) {
+      onDelete(leadToDelete);
+    }
+    setConfirmOpen(false);
+    setLeadToDelete(null);
   };
 
   return (
@@ -171,39 +197,18 @@ const LeadTable = ({ leads, onEdit, onDelete }) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort('name')}
-                >
-                  <div className="flex items-center">
-                    Name {getSortIcon('name')}
-                  </div>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('name')}>
+                  <div className="flex items-center">Name {getSortIcon('name')}</div>
                 </TableHead>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort('company')}
-                >
-                  <div className="flex items-center">
-                    Company {getSortIcon('company')}
-                  </div>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('company')}>
+                  <div className="flex items-center">Company {getSortIcon('company')}</div>
                 </TableHead>
                 <TableHead>Contact</TableHead>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort('status')}
-                >
-                  <div className="flex items-center">
-                    Status {getSortIcon('status')}
-                  </div>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('status')}>
+                  <div className="flex items-center">Status {getSortIcon('status')}</div>
                 </TableHead>
-                
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort('createdOn')}
-                >
-                  <div className="flex items-center whitespace-nowrap">
-                    Created On {getSortIcon('createdOn')}
-                  </div>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('createdOn')}>
+                  <div className="flex items-center whitespace-nowrap">Created On {getSortIcon('createdOn')}</div>
                 </TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -222,7 +227,6 @@ const LeadTable = ({ leads, onEdit, onDelete }) => {
                   <TableCell>
                     <StatusBadge status={lead.status} />
                   </TableCell>
-                  
                   <TableCell>{lead.createdOn ? (typeof lead.createdOn === 'string' ? new Date(lead.createdOn).toLocaleDateString() : lead.createdOn.toLocaleDateString()) : '-'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end">
@@ -237,7 +241,7 @@ const LeadTable = ({ leads, onEdit, onDelete }) => {
                         variant="ghost"
                         size="icon"
                         className="text-destructive"
-                        onClick={() => onDelete(lead.id)}
+                        onClick={() => handleOpenDelete(lead)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -253,7 +257,7 @@ const LeadTable = ({ leads, onEdit, onDelete }) => {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
-                            onClick={() => onDelete(lead.id)}
+                            onClick={() => handleOpenDelete(lead)}
                             className="text-destructive"
                           >
                             Delete
@@ -273,6 +277,22 @@ const LeadTable = ({ leads, onEdit, onDelete }) => {
           )}
         </div>
       </div>
+
+      {/* Modal for confirming delete in table view */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lead & Contact?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this contact and all associated lead status. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

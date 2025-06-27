@@ -29,6 +29,7 @@ def get_contacts():
             'user_id': contact.user_id,
             'created_at': contact.created_at.isoformat(),
             'lead_status': contact.lead.status if contact.lead else None,
+            'lead_id': contact.lead.id if contact.lead else None,
             'tasks_count': len(contact.tasks),
             'last_interaction': last_interaction
         })

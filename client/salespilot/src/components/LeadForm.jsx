@@ -24,6 +24,7 @@ const LeadForm = ({
   onSave,
   leadToEdit,
 }) => {
+
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
@@ -31,15 +32,20 @@ const LeadForm = ({
     company: '',
     status: 'New',
     source: 'Website',
-    notes: [],
+    tasks: [],
   });
 
-  const [newNote, setNewNote] = React.useState('');
+  // For new task input fields
+  const [newTask, setNewTask] = React.useState({
+    title: '',
+    description: '',
+    due_date: '',
+  });
 
   React.useEffect(() => {
     if (leadToEdit) {
-      const { id, createdOn, ...rest } = leadToEdit;
-      setFormData(rest);
+      const { id, createdOn, tasks = [], ...rest } = leadToEdit;
+      setFormData({ ...rest, tasks: tasks || [] });
     } else {
       setFormData({
         name: '',
@@ -48,7 +54,7 @@ const LeadForm = ({
         company: '',
         status: 'New',
         source: 'Website',
-        notes: [],
+        tasks: [],
       });
     }
   }, [leadToEdit]);
@@ -62,20 +68,26 @@ const LeadForm = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddNote = () => {
-    if (newNote.trim()) {
+
+  const handleTaskInputChange = (e) => {
+    const { name, value } = e.target;
+    setNewTask((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddTask = () => {
+    if (newTask.title.trim()) {
       setFormData((prev) => ({
         ...prev,
-        notes: [...(Array.isArray(prev.notes) ? prev.notes : []), newNote.trim()],
+        tasks: [...(Array.isArray(prev.tasks) ? prev.tasks : []), { ...newTask }],
       }));
-      setNewNote('');
+      setNewTask({ title: '', description: '', due_date: '' });
     }
   };
 
-  const handleRemoveNote = (index) => {
+  const handleRemoveTask = (index) => {
     setFormData((prev) => ({
       ...prev,
-      notes: (Array.isArray(prev.notes) ? prev.notes : []).filter((_, i) => i !== index),
+      tasks: (Array.isArray(prev.tasks) ? prev.tasks : []).filter((_, i) => i !== index),
     }));
   };
 
@@ -83,6 +95,7 @@ const LeadForm = ({
     e.preventDefault();
     const token = localStorage.getItem('access_token');
     try {
+      let contactId;
       if (leadToEdit) {
         // PATCH contact
         const contactRes = await fetch(`http://localhost:5555/contacts/${leadToEdit.id}`, {
@@ -100,9 +113,9 @@ const LeadForm = ({
         });
         const contactData = await contactRes.json();
         if (!contactRes.ok) throw new Error(contactData.error || 'Failed to update contact');
+        contactId = leadToEdit.id;
 
         // PATCH lead status (find lead id from leadToEdit.lead_id or similar)
-        // If leadToEdit.lead_id is not present, fallback to leadToEdit.id
         const leadId = leadToEdit.lead_id || leadToEdit.id;
         const leadRes = await fetch(`http://localhost:5555/leads/${leadId}`, {
           method: 'PATCH',
@@ -117,7 +130,6 @@ const LeadForm = ({
         const leadData = await leadRes.json();
         if (!leadRes.ok) throw new Error(leadData.error || 'Failed to update lead');
 
-        onSave();
       } else {
         // 1. Create or get contact
         const contactRes = await fetch('http://localhost:5555/contacts/', {
@@ -139,7 +151,7 @@ const LeadForm = ({
         }
 
         // 2. Get contact id (from response or by fetching contacts)
-        let contactId = contactData.id;
+        contactId = contactData.id;
         if (!contactId) {
           // If contact already exists, fetch contacts to get the id
           const contactsRes = await fetch('http://localhost:5555/contacts/', {
@@ -168,9 +180,30 @@ const LeadForm = ({
         });
         const leadData = await leadRes.json();
         if (!leadRes.ok) throw new Error(leadData.error || 'Failed to create lead');
-
-        onSave();
       }
+
+      // Save tasks to backend for this contact
+      for (const task of formData.tasks) {
+        if (task.title) {
+          await fetch('http://localhost:5555/tasks/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token && { 'Authorization': `Bearer ${token}` }),
+            },
+            body: JSON.stringify({
+              contact_id: contactId,
+              title: task.title,
+              description: task.description,
+              due_date: task.due_date,
+              status: 'Open',
+              completed: false,
+            })
+          });
+        }
+      }
+
+      onSave();
     } catch (err) {
       alert(err.message);
     }
@@ -266,31 +299,51 @@ const LeadForm = ({
             </div>
             
             <div className="space-y-2">
-              <Label>Notes</Label>
-              <div className="flex space-x-2">
+              <Label>Add Task</Label>
+              <div className="flex flex-col md:flex-row md:space-x-2 space-y-2 md:space-y-0">
                 <Input
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Add a note..."
+                  name="title"
+                  value={newTask.title}
+                  onChange={handleTaskInputChange}
+                  placeholder="Task title"
+                  className="md:w-1/3"
                 />
-                <Button type="button" onClick={handleAddNote}>
+                <Input
+                  name="description"
+                  value={newTask.description}
+                  onChange={handleTaskInputChange}
+                  placeholder="Description"
+                  className="md:w-1/3"
+                />
+                <Input
+                  name="due_date"
+                  type="date"
+                  value={newTask.due_date}
+                  onChange={handleTaskInputChange}
+                  className="md:w-1/4"
+                />
+                <Button type="button" onClick={handleAddTask}>
                   Add
                 </Button>
               </div>
               <div className="mt-2">
-                {(Array.isArray(formData.notes) && formData.notes.length > 0) ? (
+                {(Array.isArray(formData.tasks) && formData.tasks.length > 0) ? (
                   <ul className="space-y-1">
-                    {formData.notes.map((note, index) => (
+                    {formData.tasks.map((task, index) => (
                       <li
                         key={index}
                         className="flex items-center justify-between bg-secondary p-2 rounded-md"
                       >
-                        <span className="text-sm">{note}</span>
+                        <div>
+                          <span className="text-sm font-medium">{task.title}</span>
+                          {task.description && <span className="ml-2 text-xs text-muted-foreground">{task.description}</span>}
+                          {task.due_date && <span className="ml-2 text-xs text-muted-foreground">Due: {task.due_date}</span>}
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleRemoveNote(index)}
+                          onClick={() => handleRemoveTask(index)}
                           className="h-6 w-6 p-0"
                         >
                           &times;
@@ -299,7 +352,7 @@ const LeadForm = ({
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No notes added yet</p>
+                  <p className="text-sm text-muted-foreground">No tasks added yet</p>
                 )}
               </div>
             </div>

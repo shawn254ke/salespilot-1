@@ -8,6 +8,7 @@ from models import db
 from routes.users import users_bp
 from routes.contacts import contacts_bp
 from routes.leads import leads_bp
+from routes.tasks import tasks_bp
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///salespilot.db'
@@ -15,11 +16,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config["JWT_SECRET_KEY"] = "super-secret-key"
 
 
-########################
+
 app.register_blueprint(users_bp)
 app.register_blueprint(contacts_bp , url_prefix='/contacts')
 app.register_blueprint(leads_bp, url_prefix='/leads')
-########################
+app.register_blueprint(tasks_bp, url_prefix='/tasks')
 
 
 db.init_app(app)
