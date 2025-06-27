@@ -57,7 +57,7 @@ def get_contact(id):
         'company': contact.company,
         'user_id': contact.user_id,
         'created_at': contact.created_at.isoformat(),
-        'lead_status': contact.lead.status if contact.lead else None,  # ✅ Use singular 'lead'
+        'lead_status': contact.lead.status if contact.lead else None,  
         'tasks': [
             {'id': task.id, 'title': task.title, 'completed': task.completed}
             for task in contact.tasks
